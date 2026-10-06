@@ -1,0 +1,16 @@
+# ==============================================================================
+# BACKEND GITIGNORE — GOBLIN NATURE BINGO
+# ==============================================================================
+# Strict exclusion of local secrets, python virtual environments, and test caches.
+
+.env
+.env.local
+.env.*
+!.env.example
+
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.log

@@ -1,0 +1,15 @@
+# ==============================================================================
+# BACKEND DEPENDENCIES — GOBLIN MODE: NATURE SCAVENGER BINGO
+# ==============================================================================
+# Core asynchronous microservice dependencies for image evaluation,
+# Ollama/Groq integration, ElevenLabs audio, and Sentry agent monitoring.
+
+fastapi>=0.110.0
+uvicorn>=0.28.0
+pydantic>=2.6.0
+httpx>=0.27.0
+pillow>=10.2.0
+python-dotenv>=1.0.1
+sentry-sdk>=2.0.0
+elevenlabs>=1.0.0
+pytest>=8.0.0

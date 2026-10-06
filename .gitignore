@@ -1,0 +1,38 @@
+# ==============================================================================
+# ROOT GITIGNORE — GOBLIN NATURE BINGO
+# ==============================================================================
+# Protects private secrets, environment files, build artifacts, and caches.
+
+# Environment and secrets (CRITICAL: never commit real API keys or tokens)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Allow tracked example templates
+!.env.example
+!frontend/.env.example
+!backend/.env.example
+
+# Python virtual environment and bytecode caches
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.pytest_cache/
+
+# Node.js dependencies and build outputs
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# System and editor files
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.log
