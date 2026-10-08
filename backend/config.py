@@ -36,7 +36,7 @@ class Settings(BaseModel):
 
     # Optional sponsor integrations
     elevenlabs_api_key: str = os.getenv("ELEVENLABS_API_KEY", "")
-    elevenlabs_voice_id: str = os.getenv("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB")
+    elevenlabs_voice_id: str = os.getenv("ELEVENLABS_VOICE_ID", "N2lVS1w4EtoT3dr4eOWO")
     sentry_dsn: str = os.getenv("SENTRY_DSN", "")
 
     # CORS origins: dynamically parsed from comma-separated env string

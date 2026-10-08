@@ -1,13 +1,13 @@
 /**
  * ============================================================================
- * WEB AUDIO SYNTHESIZER SERVICE — GOBLIN NATURE BINGO
+ * AUDIO SYNTHESIZER & SOUND FX SERVICE — GOBLIN NATURE BINGO
  * ============================================================================
- * Pure procedural audio synthesis using browser Web Audio API primitives.
- * Delivers zero-latency, zero-bandwidth sound effects for wildlife and UI:
- * - Birds chirping: Frequency-modulated harmonic sweeps simulating warblers.
- * - Wax stamp thud: Low-frequency damped impacts simulating heavy seal stamps.
- * - Wooden dice roll: Resonant multi-click burst simulating wooden game pieces.
- * Requires zero external audio downloads or MP3 files.
+ * Delivers tactical UI sounds for the game:
+ * - Wax stamp impact thud: Low-frequency damped impacts for verified quests.
+ * - Wooden dice roll: Resonant multi-click bursts for quest rerolls.
+ *
+ * NOTE: Wildlife sounds (bird chirping and bee buzzing) are completely disabled
+ * per user request to ensure a calm, peaceful foraging experience.
  */
 
 // Shared AudioContext instance initialized lazily upon first user interaction
@@ -20,7 +20,9 @@ let audioCtx: AudioContext | null = null;
 function getAudioContext(): AudioContext | null {
   try {
     if (!audioCtx) {
-      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       audioCtx = new AudioContextClass();
     }
     if (audioCtx.state === 'suspended') {
@@ -34,49 +36,19 @@ function getAudioContext(): AudioContext | null {
 }
 
 /**
- * Synthesizes a natural, cheerful bird chirp pattern.
- * Uses a double-frequency sweep (chirp-chirp) with harmonic overtone modulation
- * to mimic a wild woodland sparrow or warbler on the tree branch.
- * 
- * @param isEnabled - Master audio toggle flag. Skips playback if false.
+ * Bird chirp permanently muted per user request.
  */
-export function playBirdChirp(isEnabled: boolean = true): void {
-  if (!isEnabled) return;
-  const ctx = getAudioContext();
-  if (!ctx) return;
+export function playBirdChirp(_isEnabled: boolean = true, _volume?: number): void {
+  // Completely disabled
+  return;
+}
 
-  const now = ctx.currentTime;
-
-  // Helper to generate a single melodic chirp note with pitch bend
-  const createNote = (startTime: number, startFreq: number, peakFreq: number, endFreq: number, duration: number) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.type = 'sine';
-
-    // Pitch sweep curve: rapid rise, sustained crest, and gentle fall
-    osc.frequency.setValueAtTime(startFreq, startTime);
-    osc.frequency.exponentialRampToValueAtTime(peakFreq, startTime + duration * 0.4);
-    osc.frequency.exponentialRampToValueAtTime(endFreq, startTime + duration);
-
-    // Amplitude envelope: instantaneous attack and smooth natural decay
-    gain.gain.setValueAtTime(0.0001, startTime);
-    gain.gain.linearRampToValueAtTime(0.18, startTime + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(startTime);
-    osc.stop(startTime + duration);
-  };
-
-  // First chirp note
-  createNote(now, 2600, 4200, 2900, 0.09);
-  // Second rhythmic flutter note
-  createNote(now + 0.11, 2900, 4800, 3100, 0.12);
-  // Third gentle trailing note
-  createNote(now + 0.25, 3300, 4100, 2800, 0.08);
+/**
+ * Bee buzz permanently muted per user request.
+ */
+export function playBeeBuzz(_isEnabled: boolean = true, _volume?: number): void {
+  // Completely disabled
+  return;
 }
 
 /**
@@ -96,12 +68,9 @@ export function playStampThud(isEnabled: boolean = true): void {
   const gain = ctx.createGain();
 
   osc.type = 'triangle';
-
-  // Pitch dropping quickly from 180Hz to 40Hz to simulate heavy wood mass
   osc.frequency.setValueAtTime(180, now);
   osc.frequency.exponentialRampToValueAtTime(42, now + 0.18);
 
-  // Sharp percussive volume envelope
   gain.gain.setValueAtTime(0.4, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
@@ -132,7 +101,6 @@ export function playDiceRoll(isEnabled: boolean = true): void {
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    // Randomized pitch for natural wooden bounce variance
     const freq = 800 + Math.random() * 600;
     osc.frequency.setValueAtTime(freq, delay);
     osc.frequency.exponentialRampToValueAtTime(200, delay + 0.03);

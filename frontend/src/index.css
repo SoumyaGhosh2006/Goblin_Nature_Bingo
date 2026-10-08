@@ -183,3 +183,9 @@ body {
   100% { transform: translate(-60px, -90px) scale(0.7) rotate(-35deg); opacity: 0; }
 }
 
+/* Gentle hovering bob motion for flying insects */
+@keyframes hoverBob {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-7px); }
+}
+

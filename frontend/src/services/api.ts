@@ -1,10 +1,10 @@
 /**
  * ============================================================================
- * UNIFIED VERIFICATION API CLIENT — GOBLIN NATURE BINGO
+ * UNIFIED VERIFICATION & VOICE API CLIENT — GOBLIN NATURE BINGO
  * ============================================================================
- * Dispatches verification payloads to either the local FastAPI server
- * (via Cloudflare Tunnel), directly to the Groq Open-Weight API in Trail Mode,
- * or gracefully queues into IndexedDB if network is offline.
+ * Dispatches verification payloads to either the local FastAPI server,
+ * directly to the Groq Open-Weight API in Trail Mode, or IndexedDB queue.
+ * Also fetches cached ElevenLabs speech audio for Grimble's dialogue updates.
  */
 
 import type { VerificationRequest, VerificationResponse } from '../types/game';
@@ -32,7 +32,7 @@ async function verifyWithGroqDirect(req: VerificationRequest): Promise<Verificat
           content: [
             {
               type: 'text',
-              text: `You are Grimble, a witty goblin naturalist refereeing a nature scavenger hunt.
+              text: `You are Grimble, a witty goblin naturalist refereeing a nature scavenger hunt in India.
 The quest is: "${req.quest_title}" (${req.quest_description}).
 Analyze the image. Does it match?
 Return ONLY valid raw JSON with no markdown formatting:
@@ -86,9 +86,9 @@ export async function verifyQuestSubmission(
   rawBlob: Blob,
   forceTrailMode: boolean = false
 ): Promise<VerificationResponse | { queued: true }> {
-  // Cap client timeout at 12 seconds
+  // Allow up to 45 seconds for local vision model paging and inference
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
 
   try {
     if (forceTrailMode && GROQ_API_KEY) {
@@ -127,5 +127,36 @@ export async function verifyQuestSubmission(
     });
 
     return { queued: true };
+  }
+}
+
+/**
+ * Requests speech audio for Grimble's dialogue lines from the cached voice endpoint.
+ * Returns base64 MP3 audio string or null if voice synthesis is unavailable.
+ */
+export async function requestGrimbleSpeech(text: string): Promise<string | null> {
+  if (!text || !text.trim()) return null;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const response = await fetch(`${API_BASE}/api/voice/speak`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.audio_base64 || null;
+    }
+    return null;
+  } catch (error) {
+    console.log('Voice synthesis request failed or timed out:', error);
+    return null;
   }
 }

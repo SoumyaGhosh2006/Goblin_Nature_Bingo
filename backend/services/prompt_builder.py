@@ -37,26 +37,38 @@ CRITICAL: Return ONLY a raw JSON object with NO markdown formatting, NO code fen
   "sensory_bonus": string
 }}"""
 
-def build_quest_generation_prompt(count: int, exclude_titles: list[str]) -> str:
+def build_quest_generation_prompt(count: int, exclude_titles: list[str], location_hint: str | None = None) -> str:
     """
     Constructs the prompt instructing the LLM to invent fresh sensory quests
-    while explicitly excluding previously completed quest titles.
+    specifically tailored to Indian biodiversity, climate, and urban/park ecosystems.
+    Guarantees no non-native temperate elements (no acorns, pinecones, chestnut, etc.).
     """
     exclusions_str = ", ".join([f'"{t}"' for t in exclude_titles]) if exclude_titles else "none"
-    return f"""You are Grimble, the goblin quest-master of the deep woods.
-Generate {count} unique, sensory, and playful outdoor nature scavenger quests.
+    loc_context = f"The player is currently exploring nature around {location_hint}, India." if location_hint else "The player is exploring nature in India (urban parks, residential gardens, roadsides, campuses)."
+
+    return f"""You are Grimble, an eccentric, playful goblin naturalist refereeing an outdoor nature scavenger hunt in India.
+{loc_context}
+
+Generate {count} unique, sensory, and achievable outdoor nature quests tailored to India's climate, flora, and fauna.
 Do NOT repeat any of these previously completed quests: [{exclusions_str}].
 
-Ensure every quest encourages players to touch, inspect, or listen to the outdoors.
+CRITICAL BIODIVERSITY RULES:
+1. NEVER generate quests for acorns, pinecones, birch, chestnut, or European/North American temperate items (these DO NOT exist in India).
+2. Favor real, observable Indian nature:
+   - Common Plants/Trees: Neem (serrated leaf), Peepal (heart-shaped leaf with long drip tip), Banyan (aerial prop root or broad leaf), Hibiscus (red flower), Bougainvillea (colorful paper bract), Marigold (Genda), Tulsi (Holy Basil / scented leaf), Coconut/Palm frond, Mango leaf, Ashoka tree leaf, Bamboo stalk.
+   - Wildlife & Signs of Life: Marching ant trail (black garden ants or red tree ants), Garden lizard (Girgit) sunning on rock/wall, Pigeon/Crow/Myna bird feather, dragonfly hovering near water, caterpillar-chewed leaf pattern, snail shell or earthworm castings in moist soil, spiderweb in foliage.
+   - Sensory & Soil: Monsoon moss on brick walls/tree trunk, rough Neem bark, terracotta earthenware fragment or smooth river stone, sunbeam filtering through green leaves, puddle water reflection.
+3. Every quest must be physically findable in an Indian city, neighborhood park, campus, or garden.
+
 Return ONLY a raw JSON object with NO markdown code fences:
 {{
   "quests": [
     {{
       "id": "snake_case_string",
       "title": "2-3 Word Title",
-      "description": "1-2 sentence objective prompt",
-      "hint": "Grimble's tactical outdoor advice",
-      "icon": "one of: leaf, sprout, wood, mushroom, sun, stone, insect, feather, water, pinecone",
+      "description": "1-2 sentence sensory objective tailored to India",
+      "hint": "Grimble's tactical goblin advice for Indian outdoors",
+      "icon": "one of: leaf, sprout, wood, mushroom, sun, stone, insect, feather, water",
       "xp_reward": 25-45
     }}
   ]

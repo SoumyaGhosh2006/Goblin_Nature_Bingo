@@ -20,6 +20,7 @@ router = APIRouter(prefix="/api/quests", tags=["Quests"])
 class QuestGeneratePayload(BaseModel):
     count: int = 9
     exclude_quest_titles: List[str] = []
+    location_hint: Optional[str] = None
 
 class QuestItem(BaseModel):
     id: str
@@ -37,7 +38,7 @@ async def generate_quests(payload: QuestGeneratePayload):
     """
     Generates a set of unique outdoor quests avoiding previously completed titles.
     """
-    prompt = build_quest_generation_prompt(payload.count, payload.exclude_quest_titles)
+    prompt = build_quest_generation_prompt(payload.count, payload.exclude_quest_titles, payload.location_hint)
 
     # Attempt local Ollama generation first
     ai_result = await generate_quests_with_ollama(prompt)

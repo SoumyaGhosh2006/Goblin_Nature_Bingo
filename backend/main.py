@@ -12,6 +12,7 @@ from config import settings
 from routes.verify import router as verify_router
 from routes.quests import router as quests_router
 from routes.health import router as health_router
+from routes.voice import router as voice_router
 
 # Initialize Sentry Agent Tracing if DSN is configured in environment
 if settings.sentry_dsn:
@@ -45,6 +46,7 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(verify_router)
 app.include_router(quests_router)
+app.include_router(voice_router)
 
 @app.get("/")
 async def root():

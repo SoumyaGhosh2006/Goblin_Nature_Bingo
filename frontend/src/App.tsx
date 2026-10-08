@@ -3,14 +3,17 @@
  * MAIN APPLICATION CONTAINER — GOBLIN NATURE BINGO
  * ============================================================================
  * Orchestrates the full mobile game lifecycle:
- * - 12% Top HUD Shelf (Level, Acorns, Leaderboard, Audio)
+ * - 12% Top HUD Shelf (Level, Acorns, Account/Auth, Leaderboard, Audio)
  * - 70% Active Canvas (Resting 3x3 Grid <-> Mode 2 Focus Quest Card)
- * - 18% Bottom Goblin Dialogue Drawer (Grimble the Naturalist)
- * - Native camera capture, 1024px canvas compression, and verification pipeline
+ * - 18% Bottom Goblin Dialogue Drawer (Grimble with 3D Mascot & ElevenLabs TTS)
+ * - Living Forest UI with pristine anime artwork, roaming bee & branch songbird
+ * - India-tailored biodiversity quest generation powered by browser geolocation
+ * - Full Google OAuth and Email/Password account modal & cloud synchronization
  */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
+import type { User } from 'firebase/auth';
 import { HeaderHUD } from './components/HeaderHUD';
 import { BingoBoard } from './components/BingoBoard';
 import { FocusQuestCard } from './components/FocusQuestCard';
@@ -19,14 +22,22 @@ import { GoblinDialogue } from './components/GoblinDialogue';
 import { VictoryModal } from './components/VictoryModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { OnboardingModal } from './components/OnboardingModal';
+import { AuthModal } from './components/AuthModal';
+import { GrimbleMascotModal } from './components/GrimbleMascotModal';
 import { LivingForestBackground } from './components/LivingForestBackground';
-import { PerchingBird } from './components/PerchingBird';
+import { RoamingBee } from './components/RoamingBee';
 import { useGameState } from './hooks/useGameState';
+import { useUserLocation } from './hooks/useUserLocation';
 import { compressImage, savePhotoBlob } from './hooks/useIndexedDB';
-import { verifyQuestSubmission } from './services/api';
+import { verifyQuestSubmission, requestGrimbleSpeech } from './services/api';
 import { fetchFreshBoard } from './services/questGenerator';
-import { syncPlayerScore } from './services/firebase';
+import {
+  syncPlayerScore,
+  onPlayerAuthStateChanged,
+  getCurrentPlayer
+} from './services/firebase';
 import { playStampThud, playDiceRoll } from './services/soundFx';
+import { getInitialSeedBoard } from './data/questPool';
 
 export function App() {
   const {
@@ -40,9 +51,16 @@ export function App() {
     startNewBoard
   } = useGameState();
 
+  // Geolocation hook detecting user's Indian region/city for quest localization
+  const { locationHint } = useUserLocation();
+
   // Dialog & Modal View Controls
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showGrimbleModal, setShowGrimbleModal] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => getCurrentPlayer());
+
   const [grimbleDialogue, setGrimbleDialogue] = useState(
     "Welcome to the wildwood, human! Tap any parchment card on the board to begin your hunt."
   );
@@ -54,7 +72,59 @@ export function App() {
   const [isVerifying, setIsVerifying] = useState(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync player score to leaderboard when XP changes
+  // Listen to Firebase authentication state changes across the browser session
+  useEffect(() => {
+    const unsubscribe = onPlayerAuthStateChanged((user) => {
+      setCurrentUser(user);
+      if (user && user.displayName && !gameState.playerNickname) {
+        setNickname(user.displayName);
+      }
+    });
+    return () => unsubscribe();
+  }, [setNickname, gameState.playerNickname]);
+
+  // Auto-migrate legacy board if it contains temperate elements (Acorns / Pinecones)
+  useEffect(() => {
+    const hasTemperate = gameState.tiles.some(t =>
+      t.title.toLowerCase().includes('acorn') ||
+      t.title.toLowerCase().includes('pinecone') ||
+      t.description.toLowerCase().includes('acorn') ||
+      t.description.toLowerCase().includes('pinecone')
+    );
+    if (hasTemperate) {
+      startNewBoard(getInitialSeedBoard());
+    }
+  }, []);
+
+  // ElevenLabs Voice Pipeline: Auto-speaks every dialogue update
+  useEffect(() => {
+    if (!soundEnabled || !grimbleDialogue) return;
+
+    let isSubscribed = true;
+    requestGrimbleSpeech(grimbleDialogue).then(b64 => {
+      if (!isSubscribed || !b64) return;
+      const url = `data:audio/mp3;base64,${b64}`;
+      setAudioUrl(url);
+
+      const audio = new Audio(url);
+      audio.play().catch(() => {
+        // Handle mobile browser autoplay restriction: defer to first user touch
+        const unlockAudio = () => {
+          audio.play().catch(() => {});
+          window.removeEventListener('click', unlockAudio);
+          window.removeEventListener('touchstart', unlockAudio);
+        };
+        window.addEventListener('click', unlockAudio, { once: true });
+        window.addEventListener('touchstart', unlockAudio, { once: true });
+      });
+    });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [grimbleDialogue, soundEnabled]);
+
+  // Sync player score to Cloud Firestore leaderboard when XP changes
   useEffect(() => {
     if (gameState.playerNickname) {
       syncPlayerScore({
@@ -67,6 +137,16 @@ export function App() {
       });
     }
   }, [gameState.woodlandXP, gameState.playerLevel, gameState.playerNickname, gameState.completedLines]);
+
+  // Update Grimble's advice whenever the active focus tile changes
+  useEffect(() => {
+    if (gameState.activeTileIndex !== null) {
+      const quest = gameState.tiles[gameState.activeTileIndex];
+      if (quest) {
+        setGrimbleDialogue(`Hunt for ${quest.title}! ${quest.hint}`);
+      }
+    }
+  }, [gameState.activeTileIndex]);
 
   // Trigger native mobile camera capture
   const handleTriggerCamera = () => {
@@ -87,7 +167,6 @@ export function App() {
       console.error('Failed to process camera photo:', err);
       setGrimbleDialogue("Blurry lens! Grimble could not make out that photo. Try again!");
     } finally {
-      // Reset input value to allow recapturing same file if retried
       e.target.value = '';
     }
   };
@@ -124,9 +203,7 @@ export function App() {
       }
 
       if (result.passed) {
-        // Trigger tactile wood wax stamp thud sound
         playStampThud(soundEnabled);
-
         completeQuest(
           activeQuest.index,
           result.woodland_xp,
@@ -135,12 +212,6 @@ export function App() {
         );
         setGrimbleDialogue(result.goblin_critique);
         setSensoryTask(result.sensory_bonus);
-
-        if (result.audio_base64 && soundEnabled) {
-          const audio = new Audio(`data:audio/mp3;base64,${result.audio_base64}`);
-          audio.play().catch(e => console.log('Audio autoplay blocked:', e));
-          setAudioUrl(`data:audio/mp3;base64,${result.audio_base64}`);
-        }
       } else {
         setGrimbleDialogue(result.goblin_critique);
       }
@@ -156,15 +227,14 @@ export function App() {
   // Bribe Grimble to swap the active quest
   const handleReroll = () => {
     if (gameState.activeTileIndex === null) return;
-    // Play wooden dice rolling sound
     playDiceRoll(soundEnabled);
     const res = rerollTile(gameState.activeTileIndex);
     setGrimbleDialogue(res.message);
   };
 
-  // Generate brand new board of 9 quests
+  // Generate brand new board of 9 quests tailored to Indian location
   const handleGenerateNewBoard = async () => {
-    const newTiles = await fetchFreshBoard(gameState.completedQuestHistory);
+    const newTiles = await fetchFreshBoard(gameState.completedQuestHistory, locationHint);
     startNewBoard(newTiles);
     setGrimbleDialogue("A brand new woodland territory has unfolded! Seek fresh treasures!");
     setSensoryTask(undefined);
@@ -175,10 +245,9 @@ export function App() {
     : null;
 
   return (
-    <div className="relative flex flex-col h-screen w-full max-w-md mx-auto overflow-hidden bg-forest-dark justify-between font-sans">
-      {/* Living Forest Park Background Canvas & Wildlife */}
-      <LivingForestBackground />
-      <PerchingBird soundEnabled={soundEnabled} />
+    <div className="relative flex flex-col h-screen w-full max-w-md mx-auto overflow-hidden justify-between font-sans shadow-2xl">
+      {/* Living Forest Park Background Canvas with Pristine Artwork, Bird, and Bee */}
+      <LivingForestBackground soundEnabled={soundEnabled} />
 
       {/* Hidden Mobile Native Camera Input */}
       <input
@@ -190,14 +259,18 @@ export function App() {
         className="hidden"
       />
 
-      {/* Top 12%: Header HUD Shelf */}
+      {/* Top 12%: Header HUD Shelf with Account/Auth Profile Trigger */}
       <HeaderHUD
         playerLevel={gameState.playerLevel}
         woodlandXP={gameState.woodlandXP}
         acorns={gameState.acorns}
         soundEnabled={soundEnabled}
+        isAuthenticated={Boolean(currentUser && !currentUser.isAnonymous)}
+        photoURL={currentUser?.photoURL}
+        playerNickname={gameState.playerNickname || currentUser?.displayName || 'Adventurer'}
         onToggleSound={() => setSoundEnabled(prev => !prev)}
         onOpenLeaderboard={() => setShowLeaderboard(true)}
+        onOpenAuth={() => setShowAuthModal(true)}
       />
 
       {/* Center 70%: Active Canvas (Resting 3x3 Grid <-> Mode 2 Focus Quest Card) */}
@@ -221,7 +294,7 @@ export function App() {
             {/* Quick Refresh / New Board Trigger */}
             <button
               onClick={handleGenerateNewBoard}
-              className="text-xs font-black text-parchment-dark hover:text-gold transition-colors flex items-center space-x-1.5 uppercase tracking-wider bg-timber/40 px-3 py-1.5 rounded-full border border-timber-light/30"
+              className="text-xs font-black text-parchment-dark hover:text-gold transition-colors flex items-center space-x-1.5 uppercase tracking-wider bg-timber/60 px-3 py-1.5 rounded-full border border-timber-light/50 backdrop-blur-xs"
             >
               <RefreshCw className="w-3.5 h-3.5 text-gold" />
               <span>Generate New Board</span>
@@ -230,7 +303,7 @@ export function App() {
         )}
       </main>
 
-      {/* Bottom 18%: Goblin Dialogue Drawer */}
+      {/* Bottom 18%: Goblin Dialogue Drawer with Big 3D Character & ElevenLabs Audio */}
       <GoblinDialogue
         dialogueText={grimbleDialogue}
         sensoryTask={sensoryTask}
@@ -240,13 +313,25 @@ export function App() {
             new Audio(audioUrl).play().catch(e => console.log('Audio playback error:', e));
           }
         }}
+        onInspectGrimble={() => setShowGrimbleModal(true)}
       />
 
-      {/* MODALS */}
+      {/* Highest App Layer: Roaming Cartoon Bumblebees flying across all cards and UI */}
+      <RoamingBee soundEnabled={soundEnabled} />
+
+      {/* ================================================================== */}
+      {/* MODAL DIALOGS                                                      */}
+      {/* ================================================================== */}
+
+      {/* Onboarding Dialog for First-Time Launch */}
       {!gameState.playerNickname && (
-        <OnboardingModal onComplete={setNickname} />
+        <OnboardingModal
+          onComplete={setNickname}
+          onOpenAuth={() => setShowAuthModal(true)}
+        />
       )}
 
+      {/* Camera Photo Preview & AI Submission Modal */}
       {capturedPhoto && (
         <PhotoPreviewModal
           photoPreviewUrl={capturedPhoto.base64}
@@ -256,6 +341,7 @@ export function App() {
         />
       )}
 
+      {/* 3-in-a-Row Bingo Line Completion Modal with 3D Mascot */}
       {hasNewBingo && (
         <VictoryModal
           onKeepHunting={() => setHasNewBingo(false)}
@@ -263,6 +349,7 @@ export function App() {
         />
       )}
 
+      {/* Multiplayer Leaderboard Modal */}
       {showLeaderboard && (
         <LeaderboardModal
           currentPlayer={{
@@ -271,6 +358,35 @@ export function App() {
             xp: gameState.woodlandXP
           }}
           onClose={() => setShowLeaderboard(false)}
+        />
+      )}
+
+      {/* User Login & Signup Auth Modal */}
+      {showAuthModal && (
+        <AuthModal
+          currentUser={currentUser}
+          currentNickname={gameState.playerNickname}
+          woodlandXP={gameState.woodlandXP}
+          playerLevel={gameState.playerLevel}
+          acorns={gameState.acorns}
+          onClose={() => setShowAuthModal(false)}
+          onAuthSuccess={(name) => {
+            setNickname(name);
+          }}
+        />
+      )}
+
+      {/* Big 3D Grimble Mascot Fullscreen Showcase */}
+      {showGrimbleModal && (
+        <GrimbleMascotModal
+          dialogueText={grimbleDialogue}
+          hasAudio={Boolean(audioUrl)}
+          onPlayAudio={() => {
+            if (audioUrl) {
+              new Audio(audioUrl).play().catch(e => console.log('Audio playback error:', e));
+            }
+          }}
+          onClose={() => setShowGrimbleModal(false)}
         />
       )}
     </div>

@@ -3,7 +3,8 @@
  * DUAL-ENGINE QUEST GENERATOR — GOBLIN NATURE BINGO
  * ============================================================================
  * Coordinates on-the-fly AI quest generation with the local backend/Groq,
- * seamlessly falling back to the 2,250-combination offline matrix if offline.
+ * tailored to the player's Indian geolocation or regional context.
+ * Seamlessly falls back to the Indian procedural matrix if offline on trails.
  */
 
 import type { QuestTileState } from '../types/game';
@@ -12,19 +13,24 @@ import { generateProceduralBoard } from '../data/combinatoricMatrix';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 /**
- * Generates 9 fresh quests avoiding previously seen titles.
+ * Generates 9 fresh quests avoiding previously completed titles,
+ * contextualized with the user's detected Indian city or region.
  */
-export async function fetchFreshBoard(excludeTitles: string[] = []): Promise<QuestTileState[]> {
+export async function fetchFreshBoard(
+  excludeTitles: string[] = [],
+  locationHint: string | null = 'India'
+): Promise<QuestTileState[]> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 7000);
 
     const res = await fetch(`${API_BASE}/api/quests/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         count: 9,
-        exclude_quest_titles: excludeTitles
+        exclude_quest_titles: excludeTitles,
+        location_hint: locationHint || 'India'
       }),
       signal: controller.signal
     });
@@ -47,9 +53,9 @@ export async function fetchFreshBoard(excludeTitles: string[] = []): Promise<Que
       }
     }
   } catch (err) {
-    console.log('Online AI quest generation unavailable. Falling back to procedural matrix:', err);
+    console.log('Online AI quest generation unavailable. Falling back to Indian procedural matrix:', err);
   }
 
-  // Resilient offline fallback using the combinatoric generator
+  // Resilient offline fallback using the Indian combinatoric generator
   return generateProceduralBoard(excludeTitles);
 }

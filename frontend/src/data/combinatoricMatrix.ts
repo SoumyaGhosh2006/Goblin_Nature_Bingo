@@ -1,51 +1,57 @@
 /**
  * ============================================================================
- * COMBINATORIC MATRIX GENERATOR — OFFLINE PROCEDURAL QUESTS
+ * INDIAN BIODIVERSITY COMBINATORIC MATRIX — OFFLINE PROCEDURAL QUESTS
  * ============================================================================
- * Combines 15 sensory descriptors, 15 nature elements, and 10 micro-conditions
- * to mathematically generate 2,250 unique sensory scavenger quests on-device
- * without requiring any network connectivity or external API calls.
+ * Mathematically combines 15 sensory descriptors, 15 Indian biodiversity targets,
+ * and 10 micro-environmental conditions to create over 2,250 unique offline quests.
+ * Strictly eliminates temperate elements (zero acorns, pinecones, etc.).
  */
 
 import type { QuestTileState } from '../types/game';
 
-// Tactile & visual attributes to encourage physical interaction
+// Tactile & visual attributes grounded in Indian nature exploration
 export const DESCRIPTORS = [
-  { word: "Velvety", icon: "sprout", hint: "Brush it gently with your fingertips." },
-  { word: "Battle-Scarred", icon: "leaf", hint: "Look for bite notches or weathering." },
-  { word: "Spiral", icon: "pinecone", hint: "Nature loves Fibonacci patterns." },
-  { word: "Two-Toned", icon: "stone", hint: "Search for distinct stripes or color halves." },
-  { word: "Damp", icon: "water", hint: "Check shaded underbellies and low hollows." },
-  { word: "Miniature", icon: "acorn", hint: "Crouch low to spot tiny woodland structures." },
-  { word: "Hollow", icon: "wood", hint: "Look for beetle tunnels or natural crevices." },
-  { word: "Jagged", icon: "stone", hint: "Feel the rough, unpolished edges." },
-  { word: "Sun-Bleached", icon: "sun", hint: "Find something faded by open weather." },
-  { word: "Fragrant", icon: "sprout", hint: "Crush a needle or sniff the fresh bark." },
-  { word: "Peeling", icon: "wood", hint: "Notice natural layers shedding like parchment." },
-  { word: "Delicate", icon: "feather", hint: "Handle with care so the wind doesn't steal it." },
-  { word: "Gnarly", icon: "wood", hint: "Knots and bends tell decades of forest history." },
-  { word: "Glistening", icon: "sparkle", hint: "Sunlight catching drops or natural resin." },
-  { word: "Fossil-Like", icon: "stone", hint: "Ancient stone texture frozen in time." },
+  { word: "Serrated", icon: "leaf", hint: "Look for sawtooth or jagged leaf margins like Neem." },
+  { word: "Heart-Shaped", icon: "leaf", hint: "Look for classic Peepal leaf curvature." },
+  { word: "Aromatic", icon: "sprout", hint: "Gently rub between fingers to check for herbal scents." },
+  { word: "Two-Toned", icon: "stone", hint: "Look for contrasting mineral bands or leaf variegation." },
+  { word: "Monsoon-Damp", icon: "water", hint: "Check shaded underbellies and low garden corners." },
+  { word: "Sun-Bleached", icon: "sun", hint: "Spot items pale from intense tropical afternoon sun." },
+  { word: "Velvety", icon: "sprout", hint: "Brush gently with fingertips to feel soft micro-hairs." },
+  { word: "Caterpillar-Bitten", icon: "leaf", hint: "Look for chew notches left by garden insect larvae." },
+  { word: "Hanging", icon: "wood", hint: "Search for aerial roots or trailing climbers suspended down." },
+  { word: "Smooth", icon: "stone", hint: "Feel for river-worn pebbles or polished pottery fragments." },
+  { word: "Glistening", icon: "water", hint: "Notice light reflecting off dew drops or rain moisture." },
+  { word: "Twisted", icon: "wood", hint: "Look for spiraling woody vines or knotty branches." },
+  { word: "Delicate", icon: "feather", hint: "Handle gently so the breeze does not sweep it away." },
+  { word: "Ancient", icon: "wood", hint: "Inspect mature trees with deeply grooved trunk bark." },
+  { word: "Miniature", icon: "sprout", hint: "Crouch close to the soil to spot tiny sprouting life." }
 ];
 
-// Core outdoor organic targets
+// Core outdoor organic targets common across Indian cities, towns, and parks
 export const OBJECTS = [
-  "Leaf", "Tree Bark", "River Pebble", "Wild Fungus", "Acorn", 
-  "Insect Trail", "Bird Feather", "Puddle Mirror", "Spider Silk", "Moss Patch", 
-  "Pinecone", "Wild Vine", "Wildflower", "Exposed Root", "Earth Patch"
+  "Neem Leaf", "Peepal Leaf", "Banyan Root", "Hibiscus Bloom", "Bougainvillea Bract",
+  "Ant Trail", "Bird Feather", "Rough Bark", "Velvet Moss", "Garden Pebble",
+  "Spider Web", "Wild Vine", "Terracotta Shard", "Dragonfly", "Moist Soil Patch"
 ];
 
-// Ecological micro-contexts that get players moving and exploring
+// Micro-habitats common in Indian neighborhoods, parks, and residential gardens
 export const CONDITIONS = [
-  "resting in deep shade", "touched by direct sunlight", "near flowing water",
-  "clinging to deadwood", "sheltered under a rock", "shaped by the wind",
-  "suspended off the ground", "peeking from beneath fallen leaves",
-  "growing on a vertical wall", "older than the current season"
+  "resting in deep shade",
+  "warmed by morning sunlight",
+  "near a garden water tap or puddle",
+  "clinging to a weathered brick wall",
+  "sheltered under a leafy shrub",
+  "draped across tree bark",
+  "peeking through pavement cracks",
+  "fluttering in the warm breeze",
+  "embedded in garden soil",
+  "suspended above ground level"
 ];
 
 /**
- * Generates a procedural quest by sampling pseudo-random combinations.
- * Guarantees zero duplicates against already completed quest titles.
+ * Generates a procedural quest by sampling combinations of Indian biodiversity targets.
+ * Guarantees zero duplicate titles against completed quest history.
  */
 export function generateProceduralQuest(index: number, excludeTitles: string[] = []): QuestTileState {
   let attempts = 0;
@@ -55,7 +61,7 @@ export function generateProceduralQuest(index: number, excludeTitles: string[] =
   let obj = OBJECTS[0];
   let condition = CONDITIONS[0];
 
-  // Attempt to generate a title not in the exclusion list
+  // Pick combination not present in recent history
   do {
     const dIdx = Math.floor(Math.random() * DESCRIPTORS.length);
     const oIdx = Math.floor(Math.random() * OBJECTS.length);
@@ -72,7 +78,7 @@ export function generateProceduralQuest(index: number, excludeTitles: string[] =
   desc = `Locate a ${descriptor.word.toLowerCase()} ${obj.toLowerCase()} that is ${condition}.`;
 
   return {
-    id: `proc_${Date.now()}_${index}_${Math.random().toString(36).substring(2, 6)}`,
+    id: `proc_in_${Date.now()}_${index}_${Math.random().toString(36).substring(2, 6)}`,
     index,
     title,
     description: desc,
@@ -84,7 +90,7 @@ export function generateProceduralQuest(index: number, excludeTitles: string[] =
 }
 
 /**
- * Generates a full 3x3 board of 9 procedural offline quests.
+ * Generates a full 3x3 board of 9 procedural Indian nature quests.
  */
 export function generateProceduralBoard(excludeTitles: string[] = []): QuestTileState[] {
   const board: QuestTileState[] = [];
