@@ -2,15 +2,15 @@
  * ============================================================================
  * GOBLIN DIALOGUE COMPONENT — GOBLIN NATURE BINGO
  * ============================================================================
- * Features Grimble the Goblin Naturalist Dungeon Master prominently:
+ * Grimble the Goblin Naturalist's Field Journal Dialogue Drawer:
  * - Large, expressive 3D character bust holding up his magnifying glass
- * - Comic-style parchment speech bubble with tactile borders and drop shadow
- * - Voice playback trigger integrated with ElevenLabs TTS Callum engine
- * - Sensory grounding mindfulness bonus challenge display
+ * - Naturalist study paper note with pinned washi tape
+ * - Dynamic field commentary in botanical serif lettering
+ * - Voice playback trigger integrated with ElevenLabs TTS
  */
 
 import React from 'react';
-import { Volume2, Sparkles } from 'lucide-react';
+import { Volume2, Sparkles, Feather } from 'lucide-react';
 import { GrimbleAvatar } from './GrimbleAvatar';
 import { NatureIcon } from './NatureIcons';
 
@@ -41,53 +41,57 @@ export const GoblinDialogue: React.FC<GoblinDialogueProps> = ({
           className="filter drop-shadow-[0_6px_12px_rgba(0,0,0,0.4)] transform group-hover:scale-105 active:scale-95 transition-transform duration-200"
         />
 
-        {/* Small "Tap to Listen" Tooltip Hint */}
+        {/* Small Voice Available Indicator */}
         {hasAudio && (
-          <div className="absolute -top-1.5 -left-1 bg-gold text-timber-dark border border-gold-dark rounded-full p-1 shadow-bevel-gold animate-bounce">
+          <div className="absolute -top-1.5 -left-1 bg-amber-400 text-amber-950 border border-amber-600 rounded-full p-1 shadow-md animate-bounce">
             <Volume2 className="w-2.5 h-2.5" />
           </div>
         )}
       </div>
 
-      {/* Speech Bubble Parchment Box with Beveled Border */}
-      <div className="relative flex-1 bg-parchment border-2 border-timber-light rounded-2xl p-2.5 shadow-parchment-slab mb-1">
-        {/* Comic Bubble Pointer pointing left toward Grimble */}
-        <div className="absolute bottom-4 -left-2 w-0 h-0 border-t-6 border-t-transparent border-r-8 border-r-parchment border-b-6 border-b-transparent" />
+      {/* Field Journal Study Note Slip */}
+      <div className="relative flex-1 field-paper-tile rounded-2xl p-2.5 shadow-md border-2 border-[#8C6A48] mb-1">
+        {/* Pinned Washi Tape Accent */}
+        <div className="washi-tape-tr" />
 
-        {/* Bubble Header Bar */}
-        <div className="flex items-center justify-between pb-1 border-b border-parchment-dark/60">
-          <div className="flex items-center space-x-1">
-            <span className="text-[10px] font-black uppercase text-amber-900 tracking-wider">
-              Grimble the Naturalist
+        {/* Comic Pointer Tail */}
+        <div className="absolute bottom-4 -left-2 w-0 h-0 border-t-6 border-t-transparent border-r-8 border-r-[#F5E8C7] border-b-6 border-b-transparent" />
+
+        {/* Note Header Bar */}
+        <div className="flex items-center justify-between pb-1 border-b border-[#D4C49A]/70">
+          <div className="flex items-center space-x-1.5">
+            <Feather className="w-3 h-3 text-amber-900/80" />
+            <span className="font-serif italic font-bold text-[10.5px] text-amber-950 tracking-tight">
+              Grimble's Field Guide
             </span>
-            <Sparkles className="w-2.5 h-2.5 text-gold-dark" />
+            <Sparkles className="w-2.5 h-2.5 text-amber-600" />
           </div>
 
           {/* Voice Speaker Trigger */}
           {hasAudio && onPlayAudio && (
             <button
               onClick={onPlayAudio}
-              className="flex items-center space-x-1 px-1.5 py-0.5 bg-gold/30 hover:bg-gold/60 border border-gold-dark/40 rounded-full text-timber-dark transition-colors"
+              className="flex items-center space-x-1 px-2 py-0.5 bg-amber-200/60 hover:bg-amber-300/80 border border-amber-700/40 rounded-full text-amber-950 transition-colors"
               aria-label="Listen to Grimble"
             >
               <Volume2 className="w-3 h-3 text-amber-900" />
-              <span className="text-[9px] font-black uppercase tracking-tight text-amber-950">
-                Voice
+              <span className="text-[8.5px] font-mono font-bold uppercase tracking-tight">
+                Listen
               </span>
             </button>
           )}
         </div>
 
-        {/* Dynamic Commentary Text */}
-        <p className="text-xs font-bold text-timber-dark leading-snug pt-1">
+        {/* Dynamic Naturalist Commentary */}
+        <p className="font-serif font-bold text-xs text-amber-950 leading-snug pt-1">
           "{dialogueText}"
         </p>
 
-        {/* Sensory Grounding Bonus Micro-Challenge */}
+        {/* Sensory Grounding Bonus Task */}
         {sensoryTask && (
-          <div className="flex items-center space-x-1 text-[10px] font-extrabold text-action-dark mt-1.5 bg-action/15 border border-action/30 rounded px-1.5 py-0.5 w-fit">
-            <NatureIcon name="sprout" size={12} className="w-3 h-3 shrink-0" />
-            <span>Task: {sensoryTask}</span>
+          <div className="flex items-center space-x-1 text-[10px] font-bold text-emerald-900 mt-1.5 bg-emerald-100/70 border border-emerald-700/30 rounded px-1.5 py-0.5 w-fit">
+            <NatureIcon name="moss" size={13} className="w-3 h-3 shrink-0" />
+            <span className="font-serif italic">Tactile Task: {sensoryTask}</span>
           </div>
         )}
       </div>

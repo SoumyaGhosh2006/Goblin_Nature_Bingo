@@ -25,6 +25,7 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { AuthModal } from './components/AuthModal';
 import { GrimbleMascotModal } from './components/GrimbleMascotModal';
 import { LivingForestBackground } from './components/LivingForestBackground';
+import { RealTimeAtmosphere } from './components/RealTimeAtmosphere';
 import { RoamingBee } from './components/RoamingBee';
 import { useGameState } from './hooks/useGameState';
 import { useUserLocation } from './hooks/useUserLocation';
@@ -61,9 +62,16 @@ export function App() {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(() => getCurrentPlayer());
 
-  const [grimbleDialogue, setGrimbleDialogue] = useState(
-    "Welcome to the wildwood, human! Tap any parchment card on the board to begin your hunt."
-  );
+  const [grimbleDialogue, setGrimbleDialogue] = useState(() => {
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 17) {
+      return "Sunlight pierces the canopy! Tap any specimen card in my field journal to begin your forage.";
+    } else if (hour >= 17 && hour < 19.5) {
+      return "Twilight descends upon the wildwood! The evening shadows lengthen—keep your eyes keen for hidden specimens.";
+    } else {
+      return "Night has enveloped the forest! The moon is high and fireflies dance—nocturnal treasures await your lens.";
+    }
+  });
   const [sensoryTask, setSensoryTask] = useState<string | undefined>();
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
@@ -248,6 +256,9 @@ export function App() {
     <div className="relative flex flex-col h-screen w-full max-w-md mx-auto overflow-hidden justify-between font-sans shadow-2xl">
       {/* Living Forest Park Background Canvas with Pristine Artwork, Bird, and Bee */}
       <LivingForestBackground soundEnabled={soundEnabled} />
+
+      {/* Strict Device Real-Time Atmosphere & Celestial Canopy Layer (Day/Sunset/Night) */}
+      <RealTimeAtmosphere />
 
       {/* Hidden Mobile Native Camera Input */}
       <input

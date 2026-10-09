@@ -77,13 +77,26 @@ export function generateProceduralQuest(index: number, excludeTitles: string[] =
 
   desc = `Locate a ${descriptor.word.toLowerCase()} ${obj.toLowerCase()} that is ${condition}.`;
 
+  // Resolve authentic botanical species icon key
+  let resolvedIcon = descriptor.icon;
+  const oLower = obj.toLowerCase();
+  if (oLower.includes('neem')) resolvedIcon = 'neem';
+  else if (oLower.includes('peepal')) resolvedIcon = 'peepal';
+  else if (oLower.includes('banyan') || oLower.includes('bark')) resolvedIcon = 'banyan';
+  else if (oLower.includes('hibiscus')) resolvedIcon = 'hibiscus';
+  else if (oLower.includes('bougainvillea')) resolvedIcon = 'bougainvillea';
+  else if (oLower.includes('ant')) resolvedIcon = 'ant';
+  else if (oLower.includes('dragonfly')) resolvedIcon = 'dragonfly';
+  else if (oLower.includes('moss')) resolvedIcon = 'moss';
+  else if (oLower.includes('pebble') || oLower.includes('stone')) resolvedIcon = 'stone';
+
   return {
     id: `proc_in_${Date.now()}_${index}_${Math.random().toString(36).substring(2, 6)}`,
     index,
     title,
     description: desc,
     hint: descriptor.hint,
-    icon: descriptor.icon,
+    icon: resolvedIcon,
     xpReward: 25 + Math.floor(Math.random() * 15),
     status: 'PENDING'
   };

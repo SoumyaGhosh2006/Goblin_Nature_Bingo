@@ -189,3 +189,98 @@ body {
   50% { transform: translateY(-7px); }
 }
 
+/* 
+ * ============================================================================
+ * NOCTURNAL FIREFLY PARTICLES (STRICT NIGHT MODE ONLY)
+ * ============================================================================
+ */
+@keyframes fireflyBlink {
+  0%, 100% { opacity: 0.15; transform: scale(0.7); }
+  40% { opacity: 1; transform: scale(1.3); }
+  70% { opacity: 0.85; transform: scale(1.1); }
+  85% { opacity: 0.3; transform: scale(0.8); }
+}
+
+@keyframes fireflyOne {
+  0% { transform: translate(0px, 0px); }
+  25% { transform: translate(35px, -28px); }
+  50% { transform: translate(15px, -55px); }
+  75% { transform: translate(-20px, -25px); }
+  100% { transform: translate(0px, 0px); }
+}
+
+@keyframes fireflyTwo {
+  0% { transform: translate(0px, 0px); }
+  30% { transform: translate(-40px, 30px); }
+  60% { transform: translate(-25px, -35px); }
+  85% { transform: translate(30px, -15px); }
+  100% { transform: translate(0px, 0px); }
+}
+
+@keyframes fireflyThree {
+  0% { transform: translate(0px, 0px); }
+  20% { transform: translate(25px, 20px); }
+  55% { transform: translate(-30px, 45px); }
+  80% { transform: translate(-15px, 10px); }
+  100% { transform: translate(0px, 0px); }
+}
+
+/*
+ * ============================================================================
+ * FIELD JOURNAL TACTILE AESTHETIC CLASSES
+ * ============================================================================
+ */
+.journal-binder {
+  background-color: #382012;
+  border: 4px solid #231207;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,0,0,0.4);
+}
+
+.washi-tape-tl {
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  width: 38px;
+  height: 14px;
+  background-color: rgba(220, 204, 168, 0.72);
+  border: 1px dashed rgba(160, 138, 98, 0.6);
+  transform: rotate(-16deg);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.washi-tape-tr {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 38px;
+  height: 14px;
+  background-color: rgba(220, 204, 168, 0.72);
+  border: 1px dashed rgba(160, 138, 98, 0.6);
+  transform: rotate(14deg);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.washi-tape-bottom {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  width: 32px;
+  height: 12px;
+  background-color: rgba(214, 196, 158, 0.68);
+  border: 1px dashed rgba(150, 128, 88, 0.5);
+  transform: rotate(-10deg);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  pointer-events: none;
+  z-index: 20;
+}
+
+.field-paper-tile {
+  background: linear-gradient(135deg, #FBF4E2 0%, #F5E8C7 50%, #EFE0B8 100%);
+  border: 2px solid #8C6A48;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.2), inset 0 0 8px rgba(180,140,80,0.12);
+}
+
