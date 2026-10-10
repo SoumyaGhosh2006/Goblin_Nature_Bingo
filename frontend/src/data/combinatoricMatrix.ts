@@ -78,17 +78,24 @@ export function generateProceduralQuest(index: number, excludeTitles: string[] =
   desc = `Locate a ${descriptor.word.toLowerCase()} ${obj.toLowerCase()} that is ${condition}.`;
 
   // Resolve authentic botanical species icon key
-  let resolvedIcon = descriptor.icon;
+  let resolvedIcon = 'neem';
   const oLower = obj.toLowerCase();
-  if (oLower.includes('neem')) resolvedIcon = 'neem';
-  else if (oLower.includes('peepal')) resolvedIcon = 'peepal';
-  else if (oLower.includes('banyan') || oLower.includes('bark')) resolvedIcon = 'banyan';
+  const dLower = descriptor.word.toLowerCase();
+  
+  if (oLower.includes('neem') || dLower.includes('serrated')) resolvedIcon = 'neem';
+  else if (oLower.includes('peepal') || dLower.includes('heart')) resolvedIcon = 'peepal';
+  else if (oLower.includes('banyan') || oLower.includes('bark') || oLower.includes('vine') || dLower.includes('twisted') || dLower.includes('hanging')) resolvedIcon = 'banyan';
   else if (oLower.includes('hibiscus')) resolvedIcon = 'hibiscus';
   else if (oLower.includes('bougainvillea')) resolvedIcon = 'bougainvillea';
-  else if (oLower.includes('ant')) resolvedIcon = 'ant';
-  else if (oLower.includes('dragonfly')) resolvedIcon = 'dragonfly';
-  else if (oLower.includes('moss')) resolvedIcon = 'moss';
-  else if (oLower.includes('pebble') || oLower.includes('stone')) resolvedIcon = 'stone';
+  else if (oLower.includes('ant') || oLower.includes('spider')) resolvedIcon = 'weaver_ants';
+  else if (oLower.includes('dragonfly') || oLower.includes('feather') || dLower.includes('sun-bleached')) resolvedIcon = 'dragonfly';
+  else if (oLower.includes('moss') || dLower.includes('velvety') || dLower.includes('monsoon-damp')) resolvedIcon = 'monsoon_moss';
+  else if (oLower.includes('pebble') || oLower.includes('stone') || oLower.includes('shard') || oLower.includes('soil') || dLower.includes('smooth')) resolvedIcon = 'quartz_stone';
+  else if (oLower.includes('lizard') || oLower.includes('girgit')) resolvedIcon = 'girgit';
+  else {
+    const SPECIES_CYCLE = ['neem', 'peepal', 'banyan', 'bougainvillea', 'hibiscus', 'girgit', 'dragonfly', 'weaver_ants', 'monsoon_moss', 'quartz_stone'];
+    resolvedIcon = SPECIES_CYCLE[index % SPECIES_CYCLE.length];
+  }
 
   return {
     id: `proc_in_${Date.now()}_${index}_${Math.random().toString(36).substring(2, 6)}`,

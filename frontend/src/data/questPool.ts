@@ -71,7 +71,7 @@ export const STARTER_QUEST_POOL: Omit<QuestTileState, 'index' | 'status'>[] = [
     title: "Weaver Ant Trail",
     description: "Locate a busy trail of weaver ants or black garden ants marching tandem along bark or stone.",
     hint: "Follow tree trunks, cracked garden pathways, or shady brick borders.",
-    icon: "ant",
+    icon: "weaver_ants",
     xpReward: 35
   },
   {
@@ -79,7 +79,7 @@ export const STARTER_QUEST_POOL: Omit<QuestTileState, 'index' | 'status'>[] = [
     title: "Monsoon Moss",
     description: "Find a soft, velvety carpet of emerald bryophyte moss clinging to a damp brick wall or tree base.",
     hint: "Touch it with your fingertips! Feel the damp, cool cushion in shaded crevices.",
-    icon: "moss",
+    icon: "monsoon_moss",
     xpReward: 30
   },
   {
@@ -87,7 +87,7 @@ export const STARTER_QUEST_POOL: Omit<QuestTileState, 'index' | 'status'>[] = [
     title: "Quartz Pebble",
     description: "Find a smooth, water-rounded riverbed quartz stone with natural mineral fracture lines.",
     hint: "Check gravel park trails, potted plant drainage beds, and garden rockeries.",
-    icon: "stone",
+    icon: "quartz_stone",
     xpReward: 30
   }
 ];

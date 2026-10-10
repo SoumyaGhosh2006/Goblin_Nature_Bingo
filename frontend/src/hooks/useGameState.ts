@@ -11,7 +11,8 @@ import type { GameState, QuestTileState } from '../types/game';
 import { getInitialSeedBoard } from '../data/questPool';
 import { generateProceduralQuest } from '../data/combinatoricMatrix';
 
-const STORAGE_KEY = 'goblin_nature_bingo_state_v1';
+const STORAGE_KEY = 'goblin_nature_bingo_state_v2';
+const LEGACY_STORAGE_KEY = 'goblin_nature_bingo_state_v1';
 
 // All 8 possible 3-in-a-row winning lines on a 3x3 grid
 const WINNING_LINES = [
@@ -22,18 +23,52 @@ const WINNING_LINES = [
 
 export function useGameState() {
   const [gameState, setGameState] = useState<GameState>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    let parsedState: any = null;
+    const savedV2 = localStorage.getItem(STORAGE_KEY);
+    const savedV1 = localStorage.getItem(LEGACY_STORAGE_KEY);
+
+    if (savedV2) {
       try {
-        return JSON.parse(saved);
+        parsedState = JSON.parse(savedV2);
       } catch (e) {
-        console.error('Failed to parse saved game state:', e);
+        console.error('Failed to parse v2 state:', e);
+      }
+    } else if (savedV1) {
+      try {
+        parsedState = JSON.parse(savedV1);
+      } catch (e) {
+        console.error('Failed to parse v1 state:', e);
       }
     }
 
+    if (parsedState) {
+      // Validate tiles against the authentic 10-species pool
+      const hasLegacyTiles = !parsedState.tiles ||
+        parsedState.tiles.length !== 9 ||
+        parsedState.tiles.some((t: QuestTileState) =>
+          !t ||
+          t.title.toLowerCase().includes('twisted') ||
+          t.title.toLowerCase().includes('sun-bleached') ||
+          ['wood', 'leaf', 'insect', 'sun', 'stone', 'ant', 'moss'].includes(t.icon)
+        );
+
+      if (hasLegacyTiles) {
+        console.log('Migrating legacy board tiles to authentic 10-species Indian botanical catalog.');
+        parsedState.tiles = getInitialSeedBoard();
+        parsedState.activeTileIndex = null;
+      }
+
+      return parsedState;
+    }
+
+    const isGuestPreview = typeof window !== 'undefined' &&
+      (new URLSearchParams(window.location.search).get('guest') === '1' ||
+       new URLSearchParams(window.location.search).get('preview') === '1' ||
+       new URLSearchParams(window.location.search).get('test') === '1');
+
     // Default state on brand new game launch
     return {
-      playerNickname: '',
+      playerNickname: isGuestPreview ? 'GrimbleForager' : '',
       playerLevel: 1,
       woodlandXP: 0,
       acorns: 50, // Starting purse of 50 Acorn coins

@@ -27,33 +27,47 @@ export type NatureIconType =
 
 interface NatureIconProps {
   name?: string;
+  title?: string;
   className?: string;
   size?: number;
 }
 
 /**
- * Checks if rawName maps to one of our 10 authentic botanical ink-wash species.
+ * Checks if rawName or rawTitle maps to one of our 10 authentic botanical ink-wash species.
  */
-function resolveSpeciesKey(rawName?: string): SpeciesKey | null {
-  if (!rawName) return null;
-  const lower = rawName.toLowerCase();
+function resolveSpeciesKey(rawName?: string, rawTitle?: string): SpeciesKey | null {
+  const combined = `${rawName || ''} ${rawTitle || ''}`.toLowerCase();
+  if (!combined.trim()) return null;
 
-  if (lower.includes('neem')) return 'neem';
-  if (lower.includes('peepal') || lower.includes('drip_tip') || lower.includes('drip tip')) return 'peepal';
-  if (lower.includes('banyan') || lower.includes('prop_root') || lower.includes('aerial root') || lower.includes('bark')) return 'banyan';
-  if (lower.includes('bougainvillea') || lower.includes('flower') || lower.includes('blossom')) return 'bougainvillea';
-  if (lower.includes('hibiscus')) return 'hibiscus';
-  if (lower.includes('girgit') || lower.includes('lizard') || lower.includes('reptile')) return 'girgit';
-  if (lower.includes('dragonfly')) return 'dragonfly';
-  if (lower.includes('ant') || lower.includes('weaver')) return 'weaver_ants';
-  if (lower.includes('moss') || lower.includes('bryophyte') || lower.includes('sprout')) return 'monsoon_moss';
-  if (lower.includes('stone') || lower.includes('pebble') || lower.includes('quartz') || lower.includes('rock')) return 'quartz_stone';
+  if (combined.includes('neem') || combined.includes('serrated')) return 'neem';
+  if (combined.includes('peepal') || combined.includes('drip_tip') || combined.includes('drip tip') || combined.includes('cordate')) return 'peepal';
+  if (combined.includes('banyan') || combined.includes('prop_root') || combined.includes('aerial root') || combined.includes('bark') || combined.includes('wood') || combined.includes('twisted') || combined.includes('vine')) return 'banyan';
+  if (combined.includes('bougainvillea') || combined.includes('paper flower') || combined.includes('bract')) return 'bougainvillea';
+  if (combined.includes('hibiscus') || combined.includes('scarlet') || combined.includes('flower') || combined.includes('bloom')) return 'hibiscus';
+  if (combined.includes('girgit') || combined.includes('lizard') || combined.includes('reptile') || combined.includes('calotes')) return 'girgit';
+  if (combined.includes('dragonfly') || combined.includes('pantala') || combined.includes('gossamer') || combined.includes('fly')) return 'dragonfly';
+  if (combined.includes('ant') || combined.includes('weaver') || combined.includes('spider') || combined.includes('insect') || combined.includes('bug')) return 'weaver_ants';
+  if (combined.includes('moss') || combined.includes('bryum') || combined.includes('sprout') || combined.includes('velvet') || combined.includes('damp')) return 'monsoon_moss';
+  if (combined.includes('stone') || combined.includes('pebble') || combined.includes('quartz') || combined.includes('rock') || combined.includes('shard') || combined.includes('soil')) return 'quartz_stone';
+
+  // If a tile title exists but did not match specific keywords, map cleanly by word length hash to one of the 10
+  if (rawTitle) {
+    const SPECIES_LIST: SpeciesKey[] = [
+      'neem', 'peepal', 'banyan', 'bougainvillea', 'hibiscus',
+      'girgit', 'dragonfly', 'weaver_ants', 'monsoon_moss', 'quartz_stone'
+    ];
+    let hash = 0;
+    for (let i = 0; i < combined.length; i++) {
+      hash = (hash + combined.charCodeAt(i)) % SPECIES_LIST.length;
+    }
+    return SPECIES_LIST[hash];
+  }
 
   return null;
 }
 
 /**
- * Normalizes system icon identifier into a known vector key.
+ * Normalizes system icon identifier into a known vector key for HUD elements.
  */
 function resolveSystemIconKey(rawName?: string): NatureIconType {
   if (!rawName) return 'leaf';
@@ -72,11 +86,12 @@ function resolveSystemIconKey(rawName?: string): NatureIconType {
 
 export const NatureIcon: React.FC<NatureIconProps> = ({
   name = 'leaf',
+  title,
   className = '',
   size = 32
 }) => {
   // If the icon corresponds to one of the 10 Indian nature specimens, render botanical sketch
-  const speciesKey = resolveSpeciesKey(name);
+  const speciesKey = resolveSpeciesKey(name, title);
   if (speciesKey) {
     return (
       <SpeciesIllustration

@@ -13,6 +13,7 @@ import React from 'react';
 import { ArrowLeft, Camera, Dices, Lightbulb, Search } from 'lucide-react';
 import type { QuestTileState } from '../types/game';
 import { NatureIcon } from './NatureIcons';
+import { audioManager } from '../services/audioManager';
 
 interface FocusQuestCardProps {
   quest: QuestTileState;
@@ -31,12 +32,22 @@ export const FocusQuestCard: React.FC<FocusQuestCardProps> = ({
   onReroll,
   onTriggerCamera
 }) => {
+  const handleBack = () => {
+    audioManager.playSfx('toggle_click');
+    onBack();
+  };
+
+  const handleCamera = () => {
+    audioManager.playSfx('toggle_click');
+    onTriggerCamera();
+  };
+
   return (
     <div className="w-full max-w-[370px] mx-auto flex flex-col space-y-3 select-none">
       {/* Top Bar: Return to Binder & Mini 3x3 Specimen Matrix */}
       <div className="flex items-center justify-between px-1">
         <button
-          onClick={onBack}
+          onClick={handleBack}
           className="flex items-center space-x-1 px-3 py-1.5 bg-[#4A2E18] border-2 border-[#2A1708] rounded-xl text-xs font-bold text-parchment shadow-md active:translate-y-[1px]"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
@@ -71,7 +82,7 @@ export const FocusQuestCard: React.FC<FocusQuestCardProps> = ({
         {/* Specimen Header & Botanical Illustration Showcase */}
         <div className="flex items-center space-x-3 border-b border-[#D4C49A] pb-3 pt-1">
           <div className="w-16 h-16 flex items-center justify-center bg-[#FAF2DC] rounded-xl border-2 border-[#B89B72] shadow-inner shrink-0 p-1">
-            <NatureIcon name={quest.icon} size={48} />
+            <NatureIcon name={quest.icon} title={quest.title} size={50} />
           </div>
           <div>
             <div className="flex items-center space-x-1 text-amber-900/70 text-[10px] font-mono">
@@ -109,7 +120,7 @@ export const FocusQuestCard: React.FC<FocusQuestCardProps> = ({
         <div className="pt-1 flex flex-col space-y-2">
           {/* Snap Specimen Proof Shutter Button */}
           <button
-            onClick={onTriggerCamera}
+            onClick={handleCamera}
             className="w-full py-3.5 btn-3d-action flex items-center justify-center space-x-2 text-sm shadow-bevel-green"
           >
             <Camera className="w-5 h-5 stroke-[2.5]" />

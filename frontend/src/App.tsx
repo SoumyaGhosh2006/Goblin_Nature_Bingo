@@ -16,6 +16,7 @@ import { RefreshCw } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import { HeaderHUD } from './components/HeaderHUD';
 import { BingoBoard } from './components/BingoBoard';
+import { BoardLoadingSpinner } from './components/BoardLoadingSpinner';
 import { FocusQuestCard } from './components/FocusQuestCard';
 import { PhotoPreviewModal } from './components/PhotoPreviewModal';
 import { GoblinDialogue } from './components/GoblinDialogue';
@@ -38,6 +39,7 @@ import {
   getCurrentPlayer
 } from './services/firebase';
 import { playStampThud, playDiceRoll } from './services/soundFx';
+import { audioManager } from './services/audioManager';
 import { getInitialSeedBoard } from './data/questPool';
 
 export function App() {
@@ -64,9 +66,9 @@ export function App() {
 
   const [grimbleDialogue, setGrimbleDialogue] = useState(() => {
     const hour = new Date().getHours();
-    if (hour >= 6 && hour < 17) {
+    if (hour >= 7 && hour < 17) {
       return "Sunlight pierces the canopy! Tap any specimen card in my field journal to begin your forage.";
-    } else if (hour >= 17 && hour < 19.5) {
+    } else if (hour >= 17 && hour < 19) {
       return "Twilight descends upon the wildwood! The evening shadows lengthen—keep your eyes keen for hidden specimens.";
     } else {
       return "Night has enveloped the forest! The moon is high and fireflies dance—nocturnal treasures await your lens.";
@@ -75,9 +77,21 @@ export function App() {
   const [sensoryTask, setSensoryTask] = useState<string | undefined>();
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
+  // Sync global audio mute state to centralized AudioManager
+  useEffect(() => {
+    audioManager.setMuted(!soundEnabled);
+  }, [soundEnabled]);
+
   // Camera & Verification State
   const [capturedPhoto, setCapturedPhoto] = useState<{ blob: Blob; base64: string } | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isGeneratingBoard, setIsGeneratingBoard] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('loading') === '1' || params.get('generating') === '1';
+    }
+    return false;
+  });
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Listen to Firebase authentication state changes across the browser session
@@ -91,40 +105,50 @@ export function App() {
     return () => unsubscribe();
   }, [setNickname, gameState.playerNickname]);
 
-  // Auto-migrate legacy board if it contains temperate elements (Acorns / Pinecones)
+  // Auto-migrate legacy board if it contains temperate elements or procedural legacy quests
   useEffect(() => {
-    const hasTemperate = gameState.tiles.some(t =>
+    const hasLegacyOrTemperate = gameState.tiles.some(t =>
       t.title.toLowerCase().includes('acorn') ||
       t.title.toLowerCase().includes('pinecone') ||
-      t.description.toLowerCase().includes('acorn') ||
-      t.description.toLowerCase().includes('pinecone')
+      t.title.toLowerCase().includes('twisted') ||
+      t.title.toLowerCase().includes('sun-bleached') ||
+      ['wood', 'leaf', 'insect', 'sun', 'stone', 'ant', 'moss'].includes(t.icon)
     );
-    if (hasTemperate) {
+    if (hasLegacyOrTemperate) {
       startNewBoard(getInitialSeedBoard());
     }
   }, []);
 
-  // ElevenLabs Voice Pipeline: Auto-speaks every dialogue update
+  // Listen to atmosphere phase shifts to provide contextual woodland banter
+  useEffect(() => {
+    const handleAtmosphere = (e: any) => {
+      if (gameState.activeTileIndex !== null) return;
+      const phase = e.detail;
+      if (phase === 'DAY') {
+        setGrimbleDialogue("Sunlight pierces the canopy! Tap any specimen card in my field journal to begin your forage.");
+      } else if (phase === 'SUNSET') {
+        setGrimbleDialogue("Twilight descends upon the wildwood! The evening shadows lengthen—keep your eyes keen for hidden specimens.");
+      } else if (phase === 'NIGHT') {
+        setGrimbleDialogue("Night has enveloped the forest! The moon is high and fireflies dance—nocturnal treasures await your lens.");
+      }
+    };
+    window.addEventListener('goblin_atmosphere_changed', handleAtmosphere);
+    return () => window.removeEventListener('goblin_atmosphere_changed', handleAtmosphere);
+  }, [gameState.activeTileIndex]);
+
+  // ElevenLabs Voice Pipeline: Auto-speaks every dialogue update via centralized Voice channel
   useEffect(() => {
     if (!soundEnabled || !grimbleDialogue) return;
 
     let isSubscribed = true;
+    const voiceTicket = audioManager.beginVoiceRequest();
+
     requestGrimbleSpeech(grimbleDialogue).then(b64 => {
       if (!isSubscribed || !b64) return;
       const url = `data:audio/mp3;base64,${b64}`;
       setAudioUrl(url);
 
-      const audio = new Audio(url);
-      audio.play().catch(() => {
-        // Handle mobile browser autoplay restriction: defer to first user touch
-        const unlockAudio = () => {
-          audio.play().catch(() => {});
-          window.removeEventListener('click', unlockAudio);
-          window.removeEventListener('touchstart', unlockAudio);
-        };
-        window.addEventListener('click', unlockAudio, { once: true });
-        window.addEventListener('touchstart', unlockAudio, { once: true });
-      });
+      audioManager.playVoice(url, voiceTicket);
     });
 
     return () => {
@@ -240,12 +264,28 @@ export function App() {
     setGrimbleDialogue(res.message);
   };
 
-  // Generate brand new board of 9 quests tailored to Indian location
+  // Generate brand new board of 9 quests tailored to Indian location with loading spiral transition
   const handleGenerateNewBoard = async () => {
-    const newTiles = await fetchFreshBoard(gameState.completedQuestHistory, locationHint);
-    startNewBoard(newTiles);
-    setGrimbleDialogue("A brand new woodland territory has unfolded! Seek fresh treasures!");
-    setSensoryTask(undefined);
+    if (isGeneratingBoard) return;
+    setIsGeneratingBoard(true);
+    audioManager.playSfx('toggle_click');
+    setGrimbleDialogue("Scouting fresh woodland territory and sketching new botanical specimens...");
+
+    try {
+      // Ensure at least 850ms so the user clearly sees the board disappear and the loading circle/spiral spin
+      const [newTiles] = await Promise.all([
+        fetchFreshBoard(gameState.completedQuestHistory, locationHint),
+        new Promise(resolve => setTimeout(resolve, 850))
+      ]);
+      startNewBoard(newTiles);
+      setGrimbleDialogue("A brand new woodland territory has unfolded! Seek fresh treasures!");
+      setSensoryTask(undefined);
+    } catch (err) {
+      console.error('Failed to generate fresh board:', err);
+      setGrimbleDialogue("The forest brambles were thick! Try generating again.");
+    } finally {
+      setIsGeneratingBoard(false);
+    }
   };
 
   const activeQuest = gameState.activeTileIndex !== null
@@ -297,18 +337,27 @@ export function App() {
           />
         ) : (
           <div className="w-full flex flex-col items-center space-y-3">
-            <BingoBoard
-              tiles={gameState.tiles}
-              completedLines={gameState.completedLines}
-              onSelectTile={setActiveTileIndex}
-            />
+            {isGeneratingBoard ? (
+              <BoardLoadingSpinner />
+            ) : (
+              <BingoBoard
+                tiles={gameState.tiles}
+                completedLines={gameState.completedLines}
+                onSelectTile={setActiveTileIndex}
+              />
+            )}
             {/* Quick Refresh / New Board Trigger */}
             <button
               onClick={handleGenerateNewBoard}
-              className="text-xs font-black text-parchment-dark hover:text-gold transition-colors flex items-center space-x-1.5 uppercase tracking-wider bg-timber/60 px-3 py-1.5 rounded-full border border-timber-light/50 backdrop-blur-xs"
+              disabled={isGeneratingBoard}
+              className={`text-xs font-black transition-all flex items-center space-x-1.5 uppercase tracking-wider px-3.5 py-1.5 rounded-full border backdrop-blur-xs ${
+                isGeneratingBoard
+                  ? 'bg-amber-950/75 text-amber-200/60 border-amber-800/40 cursor-not-allowed opacity-90'
+                  : 'bg-timber/60 text-parchment-dark hover:text-gold border-timber-light/50 active:scale-95'
+              }`}
             >
-              <RefreshCw className="w-3.5 h-3.5 text-gold" />
-              <span>Generate New Board</span>
+              <RefreshCw className={`w-3.5 h-3.5 text-gold ${isGeneratingBoard ? 'animate-spin' : ''}`} />
+              <span>{isGeneratingBoard ? 'Generating Board...' : 'Generate New Board'}</span>
             </button>
           </div>
         )}
@@ -321,7 +370,7 @@ export function App() {
         hasAudio={Boolean(audioUrl)}
         onPlayAudio={() => {
           if (audioUrl) {
-            new Audio(audioUrl).play().catch(e => console.log('Audio playback error:', e));
+            audioManager.playVoice(audioUrl);
           }
         }}
         onInspectGrimble={() => setShowGrimbleModal(true)}
@@ -356,7 +405,10 @@ export function App() {
       {hasNewBingo && (
         <VictoryModal
           onKeepHunting={() => setHasNewBingo(false)}
-          onNewBoard={handleGenerateNewBoard}
+          onNewBoard={() => {
+            setHasNewBingo(false);
+            handleGenerateNewBoard();
+          }}
         />
       )}
 
@@ -394,7 +446,7 @@ export function App() {
           hasAudio={Boolean(audioUrl)}
           onPlayAudio={() => {
             if (audioUrl) {
-              new Audio(audioUrl).play().catch(e => console.log('Audio playback error:', e));
+              audioManager.playVoice(audioUrl);
             }
           }}
           onClose={() => setShowGrimbleModal(false)}

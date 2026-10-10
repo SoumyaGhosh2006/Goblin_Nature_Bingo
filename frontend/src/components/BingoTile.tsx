@@ -14,6 +14,7 @@ import React from 'react';
 import { Check, Hourglass } from 'lucide-react';
 import type { QuestTileState } from '../types/game';
 import { NatureIcon } from './NatureIcons';
+import { audioManager } from '../services/audioManager';
 
 interface BingoTileProps {
   quest: QuestTileState;
@@ -28,9 +29,14 @@ export const BingoTile: React.FC<BingoTileProps> = ({ quest, onClick, isWinningL
   // Specimen label index formatted as #01 through #09
   const specimenIndex = String(quest.index + 1).padStart(2, '0');
 
+  const handleClick = () => {
+    audioManager.playSfx('tile_click');
+    onClick();
+  };
+
   return (
     <button
-      onClick={onClick}
+      onClick={handleClick}
       disabled={isCompleted}
       className={`relative w-full aspect-square field-paper-tile rounded-xl flex flex-col items-center justify-between p-1.5 transition-all select-none cursor-pointer group
         ${isCompleted
@@ -61,12 +67,12 @@ export const BingoTile: React.FC<BingoTileProps> = ({ quest, onClick, isWinningL
       </div>
 
       {/* Center: Handcrafted Ink-Wash Botanical & Wildlife Sketch */}
-      <div className="relative my-auto flex items-center justify-center py-0.5 transform group-hover:scale-108 transition-transform duration-200">
-        <NatureIcon name={quest.icon} size={38} />
+      <div className="relative my-auto flex items-center justify-center py-0.5 transform group-hover:scale-105 transition-transform duration-200">
+        <NatureIcon name={quest.icon} title={quest.title} size={38} />
       </div>
 
-      {/* Footer: Hand-Lettered Quest Title */}
-      <span className="w-full text-center font-serif font-black text-[11px] leading-tight text-amber-950 px-0.5 line-clamp-1 pb-0.5 z-10 tracking-tight">
+      {/* Footer: Hand-Lettered Quest Title (Wraps up to 2 lines without ellipsis truncation) */}
+      <span className="w-full text-center font-serif font-black text-[9px] sm:text-[9.5px] leading-[1.1] text-amber-950 px-0.5 line-clamp-2 min-h-[20px] flex items-center justify-center break-words pb-0.5 z-10 tracking-tight">
         {quest.title}
       </span>
 
