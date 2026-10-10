@@ -10,8 +10,26 @@ import os
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# Load local environment overrides if present
+# Load local environment overrides from backend/.env regardless of cwd
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 load_dotenv()
+
+_DECOMMISSIONED_OR_TEXT_ONLY_GROQ_MODELS = {
+    "llama-3.2-11b-vision-preview",
+    "llama-3.2-90b-vision-preview",
+    "llava-v1.5-7b-4096-preview",
+    "llama-3.3-70b-versatile",
+    "llama3-8b-8192",
+    "llama3-70b-8192",
+    "mixtral-8x7b-32768",
+}
+
+_raw_groq_model = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b").strip()
+if not _raw_groq_model or _raw_groq_model in _DECOMMISSIONED_OR_TEXT_ONLY_GROQ_MODELS:
+    _resolved_groq_model = "qwen/qwen3.8-27b"
+else:
+    _resolved_groq_model = _raw_groq_model
+
 
 class Settings(BaseModel):
     """
@@ -32,7 +50,7 @@ class Settings(BaseModel):
 
     # Cloud open-weight multimodal vision & text model (Groq LPU)
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
-    groq_model: str = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
+    groq_model: str = _resolved_groq_model
 
     # Optional sponsor integrations
     elevenlabs_api_key: str = os.getenv("ELEVENLABS_API_KEY", "")
@@ -48,5 +66,6 @@ class Settings(BaseModel):
         ).split(",")
         if origin.strip()
     ]
+
 
 settings = Settings()

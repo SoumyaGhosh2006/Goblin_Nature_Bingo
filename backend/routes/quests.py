@@ -54,8 +54,9 @@ async def generate_quests(payload: QuestGeneratePayload):
                         "Content-Type": "application/json"
                     },
                     json={
-                        "model": "qwen/qwen3.8-27b",
+                        "model": "openai/gpt-oss-120b",
                         "messages": [{"role": "user", "content": prompt}],
+                        "reasoning_effort": "low",
                         "temperature": 0.8
                     }
                 )
