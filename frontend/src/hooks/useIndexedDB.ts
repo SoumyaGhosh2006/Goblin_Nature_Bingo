@@ -26,17 +26,25 @@ export async function compressImage(file: File | Blob): Promise<{ blob: Blob; ba
     };
 
     img.onload = () => {
-      const maxDim = 1024;
-      let width = img.width;
-      let height = img.height;
+      const maxDim = 1280;
+      const minDim = 64;
+      let width = img.width || 256;
+      let height = img.height || 256;
 
-      // Scale down proportionally
+      // Scale down proportionally if larger than maxDim
       if (width > height && width > maxDim) {
         height = Math.round((height * maxDim) / width);
         width = maxDim;
       } else if (height > maxDim) {
         width = Math.round((width * maxDim) / height);
         height = maxDim;
+      }
+
+      // Ensure minimum dimensions (>= 64px) required by cloud multimodal vision APIs
+      if (width < minDim || height < minDim) {
+        const scale = Math.max(minDim / Math.max(width, 1), minDim / Math.max(height, 1));
+        width = Math.max(minDim, Math.round(width * scale));
+        height = Math.max(minDim, Math.round(height * scale));
       }
 
       const canvas = document.createElement('canvas');
@@ -49,8 +57,14 @@ export async function compressImage(file: File | Blob): Promise<{ blob: Blob; ba
         return;
       }
 
+      // Fill neutral white backdrop so transparent PNGs/WebPs from Google do not turn black in JPEG
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
       ctx.drawImage(img, 0, 0, width, height);
-      const base64 = canvas.toDataURL('image/jpeg', 0.8);
+      const base64 = canvas.toDataURL('image/jpeg', 0.88);
 
       canvas.toBlob(
         (blob) => {
@@ -61,7 +75,7 @@ export async function compressImage(file: File | Blob): Promise<{ blob: Blob; ba
           }
         },
         'image/jpeg',
-        0.8
+        0.88
       );
     };
 

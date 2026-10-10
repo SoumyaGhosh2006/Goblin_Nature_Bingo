@@ -30,9 +30,9 @@ class Settings(BaseModel):
     # Backwards compatibility alias for ollama_model
     ollama_model: str = os.getenv("OLLAMA_MODEL", "moondream")
 
-    # Cloud open-weight fallback (Groq free tier)
+    # Cloud open-weight multimodal vision & text model (Groq LPU)
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")
-    groq_model: str = os.getenv("GROQ_MODEL", "llama-3.2-11b-vision-preview")
+    groq_model: str = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
 
     # Optional sponsor integrations
     elevenlabs_api_key: str = os.getenv("ELEVENLABS_API_KEY", "")
