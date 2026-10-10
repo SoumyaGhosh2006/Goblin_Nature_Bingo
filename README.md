@@ -1,4 +1,4 @@
-# 🌿 Goblin Mode: Nature Scavenger Bingo
+# 🌿 Goblin Nature Bingo
 
 **Offline-First, Location-Aware Outdoor Field Journal & AI Botanical Scavenger Hunt**
 
@@ -10,7 +10,7 @@
 
 ## 📖 Overview
 
-**Goblin Mode: Nature Scavenger Bingo** is an interactive, offline-first outdoor scavenger hunt web application guided by **Grimble**, a voice-synthesized goblin naturalist who gets players off their screens and physically outside exploring parks, gardens, campuses, and neighborhood trails.
+**Goblin Nature Bingo** is an interactive, offline-first outdoor scavenger hunt web application guided by **Grimble**, a voice-synthesized goblin naturalist who gets players off their screens and physically outside exploring parks, gardens, campuses, and neighborhood trails.
 
 Instead of endlessly scrolling through a screen, users receive nature-based missions on a `3×3` weathered leather-and-parchment field binder, step outside to explore their surroundings, photograph real botanical and zoological specimens, and use a multi-stage **Computer Vision + Universal Taxonomic RAG + Open-Weight Multimodal AI** referee to verify their discoveries.
 
