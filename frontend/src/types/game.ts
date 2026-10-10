@@ -33,7 +33,7 @@ export interface QuestTileState {
 export interface GameState {
   playerNickname: string;     // Guest username selected on onboarding
   playerLevel: number;        // Level based on total accumulated Woodland XP
-  woodlandXP: number;         // Total experience points
+  woodlandXP: number;         // Total experience points for the active monthly season
   acorns: number;             // Currency used for rerolling quests
   currentBoardId: string;     // UUID for tracking current 3x3 session
   activeTileIndex: number | null; // Currently selected quest for Focus Mode
@@ -41,6 +41,7 @@ export interface GameState {
   completedLines: number[];   // Indices of completed rows, cols, or diagonals
   completedQuestHistory: string[]; // Avoids AI generating duplicate quests
   tiles: QuestTileState[];    // The 9 active tiles on the current board
+  leaderboardSeason?: string; // Active monthly season key (YYYY-MM), resets on the 1st of each month
 }
 
 /**
@@ -92,5 +93,6 @@ export interface LeaderboardEntry {
   woodlandXP: number;
   bingosCompleted: number;
   lastActive: string;
+  seasonKey?: string;         // Monthly season key (YYYY-MM), auto-reset on the 1st of every month
   isCurrentPlayer?: boolean;
 }

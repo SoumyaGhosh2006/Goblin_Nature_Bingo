@@ -10,6 +10,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { GameState, QuestTileState } from '../types/game';
 import { getInitialSeedBoard } from '../data/questPool';
 import { generateProceduralQuest } from '../data/combinatoricMatrix';
+import { getCurrentSeasonKey } from '../services/firebase';
 
 const STORAGE_KEY = 'goblin_nature_bingo_state_v2';
 const LEGACY_STORAGE_KEY = 'goblin_nature_bingo_state_v1';
@@ -23,6 +24,7 @@ const WINNING_LINES = [
 
 export function useGameState() {
   const [gameState, setGameState] = useState<GameState>(() => {
+    const activeSeasonKey = getCurrentSeasonKey();
     let parsedState: any = null;
     const savedV2 = localStorage.getItem(STORAGE_KEY);
     const savedV1 = localStorage.getItem(LEGACY_STORAGE_KEY);
@@ -58,6 +60,17 @@ export function useGameState() {
         parsedState.activeTileIndex = null;
       }
 
+      // Monthly Leaderboard Reset check (triggers on the 1st of every new month)
+      if (!parsedState.leaderboardSeason) {
+        parsedState.leaderboardSeason = activeSeasonKey;
+      } else if (parsedState.leaderboardSeason !== activeSeasonKey) {
+        console.log(`New monthly season (${activeSeasonKey}) detected! Resetting seasonal leaderboard stats.`);
+        parsedState.woodlandXP = 0;
+        parsedState.playerLevel = 1;
+        parsedState.completedLines = [];
+        parsedState.leaderboardSeason = activeSeasonKey;
+      }
+
       return parsedState;
     }
 
@@ -77,7 +90,8 @@ export function useGameState() {
       freeRerollsRemaining: 1,
       completedLines: [],
       completedQuestHistory: [],
-      tiles: getInitialSeedBoard()
+      tiles: getInitialSeedBoard(),
+      leaderboardSeason: activeSeasonKey
     };
   });
 
@@ -87,6 +101,28 @@ export function useGameState() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
   }, [gameState]);
+
+  // Live check for 1st-of-the-month rollover while the app remains open
+  useEffect(() => {
+    const checkMonthlyReset = () => {
+      const currentSeason = getCurrentSeasonKey();
+      setGameState(prev => {
+        if (prev.leaderboardSeason && prev.leaderboardSeason !== currentSeason) {
+          return {
+            ...prev,
+            woodlandXP: 0,
+            playerLevel: 1,
+            completedLines: [],
+            leaderboardSeason: currentSeason
+          };
+        }
+        return prev;
+      });
+    };
+
+    const interval = setInterval(checkMonthlyReset, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   /**
    * Sets player guest nickname from onboarding.

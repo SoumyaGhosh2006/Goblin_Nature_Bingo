@@ -8,7 +8,7 @@
  */
 
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, collection, getDocs, doc, setDoc, query, orderBy, limit } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, limit } from 'firebase/firestore';
 import {
   getAuth,
   signInAnonymously,
@@ -22,6 +22,47 @@ import {
 } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import type { LeaderboardEntry } from '../types/game';
+
+/**
+ * Returns the canonical monthly season identifier (YYYY-MM).
+ * Because every calendar month begins on the 1st at 00:00, this key
+ * automatically rolls over on the 1st day of each month.
+ */
+export function getCurrentSeasonKey(now: Date = new Date()): string {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+/**
+ * Computes metadata for the active monthly leaderboard season and next 1st-of-month reset.
+ */
+export function getMonthlyResetInfo(now: Date = new Date()): {
+  seasonKey: string;
+  seasonLabel: string;
+  nextResetLabel: string;
+  daysUntilReset: number;
+  isFirstDayOfMonth: boolean;
+} {
+  const seasonKey = getCurrentSeasonKey(now);
+  const seasonLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const nextResetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+  const nextResetLabel = nextResetDate.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  const msRemaining = Math.max(0, nextResetDate.getTime() - now.getTime());
+  const daysUntilReset = Math.max(1, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
+
+  return {
+    seasonKey,
+    seasonLabel,
+    nextResetLabel,
+    daysUntilReset,
+    isFirstDayOfMonth: now.getDate() === 1
+  };
+}
 
 // Configuration keys populated from Vite environment variables (.env)
 const firebaseConfig = {
@@ -147,11 +188,14 @@ export function onPlayerAuthStateChanged(callback: (user: User | null) => void):
 }
 
 /**
- * Fetches top 10 foragers from Cloud Firestore or offline mock storage.
+ * Fetches top 10 foragers for the active monthly season from Cloud Firestore or offline mock storage.
+ * Automatically purges stale entries from prior months on or after the 1st of each month.
  */
 export async function fetchLeaderboard(currentPlayer: { nickname: string; level: number; xp: number }): Promise<LeaderboardEntry[]> {
+  const currentSeason = getCurrentSeasonKey();
+
   if (!isFirebaseConfigured || !db) {
-    // Generate simulated rankings including the current local player
+    // Generate simulated rankings including the current local player for the current monthly season
     const playerEntry: LeaderboardEntry = {
       id: 'current_player',
       nickname: currentPlayer.nickname || 'You',
@@ -159,44 +203,84 @@ export async function fetchLeaderboard(currentPlayer: { nickname: string; level:
       woodlandXP: currentPlayer.xp,
       bingosCompleted: Math.floor(currentPlayer.xp / 100),
       lastActive: 'Just now',
+      seasonKey: currentSeason,
       isCurrentPlayer: true
     };
 
-    const combined = [...MOCK_FORAGERS, playerEntry];
+    const seasonalMocks = MOCK_FORAGERS.map(r => ({ ...r, seasonKey: currentSeason }));
+    const combined = [...seasonalMocks, playerEntry];
     return combined.sort((a, b) => b.woodlandXP - a.woodlandXP);
   }
 
   try {
-    // Query the top 10 players ranked by woodland experience points
-    const q = query(collection(db, 'leaderboard'), orderBy('woodlandXP', 'desc'), limit(10));
+    // Query top players ranked by woodland experience points
+    const q = query(collection(db, 'leaderboard'), orderBy('woodlandXP', 'desc'), limit(25));
     const snapshot = await getDocs(q);
-    const entries: LeaderboardEntry[] = [];
+    const activeEntries: LeaderboardEntry[] = [];
+    const staleDocIds: string[] = [];
+
+    const currentPlayerId = currentPlayer.nickname
+      ? `player_${currentPlayer.nickname.toLowerCase()}`
+      : '';
 
     snapshot.forEach(docSnap => {
-      entries.push({ id: docSnap.id, ...docSnap.data() } as LeaderboardEntry);
+      const data = docSnap.data();
+      // Determine entry's monthly season from explicit seasonKey or ISO lastActive timestamp
+      const entrySeason: string | undefined =
+        data.seasonKey ||
+        (typeof data.lastActive === 'string' && /^\d{4}-\d{2}/.test(data.lastActive)
+          ? data.lastActive.slice(0, 7)
+          : undefined);
+
+      if (entrySeason && entrySeason !== currentSeason) {
+        // Stale entry from a previous month — schedule automatic reset deletion
+        staleDocIds.push(docSnap.id);
+        return;
+      }
+
+      activeEntries.push({
+        id: docSnap.id,
+        ...data,
+        seasonKey: currentSeason,
+        isCurrentPlayer:
+          docSnap.id === currentPlayerId ||
+          (Boolean(currentPlayer.nickname) &&
+            typeof data.nickname === 'string' &&
+            data.nickname.toLowerCase() === currentPlayer.nickname.toLowerCase())
+      } as LeaderboardEntry);
     });
 
-    return entries;
+    // Asynchronously purge previous month's leaderboard records so the 1st-of-month reset persists in Firestore
+    if (staleDocIds.length > 0) {
+      Promise.allSettled(
+        staleDocIds.map(staleId => deleteDoc(doc(db, 'leaderboard', staleId)))
+      ).catch(() => {});
+    }
+
+    return activeEntries.slice(0, 10);
   } catch (error) {
     console.warn('Firestore fetch failed, falling back to mock foragers:', error);
-    return MOCK_FORAGERS;
-  } 
+    return MOCK_FORAGERS.map(r => ({ ...r, seasonKey: currentSeason }));
+  }
 }
 
 /**
- * Syncs the current player's score to the Cloud Firestore leaderboard collection.
+ * Syncs the current player's score to the Cloud Firestore leaderboard collection
+ * stamped with the active monthly season key (YYYY-MM).
  */
 export async function syncPlayerScore(entry: LeaderboardEntry): Promise<void> {
   if (!isFirebaseConfigured || !db) return;
 
   try {
-    // Update or insert player document under their unique player ID
+    const currentSeason = getCurrentSeasonKey();
+    // Update or insert player document under their unique player ID for the active month
     const docRef = doc(db, 'leaderboard', entry.id);
     await setDoc(docRef, {
       nickname: entry.nickname,
       level: entry.level,
       woodlandXP: entry.woodlandXP,
       bingosCompleted: entry.bingosCompleted,
+      seasonKey: currentSeason,
       lastActive: new Date().toISOString()
     }, { merge: true });
   } catch (error) {
